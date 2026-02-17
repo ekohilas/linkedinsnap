@@ -90,16 +90,12 @@ export function CameraScreen(props: CameraScreenProps) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }
-
-      // Return to QR screen
-      props.onCapture();
     } catch (err) {
       console.error('Capture error:', err);
-      if ((err as Error).name !== 'AbortError') {
-        setError('Failed to save photo. Please try again.');
-      }
     } finally {
       setIsCapturing(false);
+      // Always return to QR screen after capture attempt
+      props.onCapture();
     }
   };
 
