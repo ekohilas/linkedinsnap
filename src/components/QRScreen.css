@@ -3,7 +3,7 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, #0072b1 50%, #ffffff 100%);
   padding: 20px;
 }
 
@@ -47,7 +47,7 @@
 }
 
 .qr-container h2 {
-  color: #0a66c2;
+  color: #000000;
   font-size: 1.8rem;
   margin-bottom: 1.5rem;
 }

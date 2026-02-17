@@ -21,7 +21,7 @@ export function QRScreen(props: QRScreenProps) {
           width: 300,
           margin: 2,
           color: {
-            dark: '#0a66c2',
+            dark: '#000000',
             light: '#ffffff'
           }
         });
