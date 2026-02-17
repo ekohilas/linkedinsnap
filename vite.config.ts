@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import basicSsl from '@vitejs/plugin-basic-ssl'
+// import basicSsl from '@vitejs/plugin-basic-ssl'
 import solid from 'vite-plugin-solid'
 import { VitePWA } from 'vite-plugin-pwa'
 
