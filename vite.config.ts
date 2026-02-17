@@ -1,11 +1,11 @@
 import { defineConfig } from 'vite'
-// import basicSsl from '@vitejs/plugin-basic-ssl'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import solid from 'vite-plugin-solid'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   plugins: [
-    // basicSsl(), // For local development with HTTPS, can be removed for production
+    basicSsl(), // For local development with HTTPS, can be removed for production
     solid(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -17,8 +17,8 @@ export default defineConfig({
         theme_color: '#0a66c2',
         background_color: '#ffffff',
         display: 'standalone',
-        scope: '/',
-        start_url: '/',
+        scope: '/linkedinsnap/',
+        start_url: '/linkedinsnap/#ekohilas',
         icons: [
           {
             src: 'icon-192.png',
