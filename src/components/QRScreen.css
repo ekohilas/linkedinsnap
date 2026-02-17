@@ -1,0 +1,95 @@
+.qr-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.qr-instructions {
+  text-align: center;
+  color: white;
+  max-width: 400px;
+}
+
+.qr-instructions h1 {
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  font-weight: 700;
+}
+
+.qr-instructions p {
+  font-size: 1.1rem;
+  margin: 1rem 0;
+}
+
+.qr-instructions code {
+  display: block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  margin: 1.5rem 0;
+}
+
+.qr-instructions .example {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.qr-container {
+  text-align: center;
+  background: white;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.qr-container h2 {
+  color: #0a66c2;
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.qr-code-wrapper {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.qr-code-wrapper:hover {
+  transform: scale(1.05);
+}
+
+.qr-code-wrapper:active {
+  transform: scale(0.95);
+}
+
+.qr-code {
+  max-width: 300px;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+.tap-hint {
+  margin-top: 1rem;
+  color: #666;
+  font-size: 0.9rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.error {
+  color: #dc2626;
+  font-size: 1rem;
+  margin-top: 1rem;
+}
