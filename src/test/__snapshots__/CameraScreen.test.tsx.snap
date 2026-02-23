@@ -1,0 +1,106 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CameraScreen > shows camera view when access is granted 1`] = `
+<div>
+  <div
+    class="camera-screen"
+  >
+    
+    
+    <video
+      autoplay=""
+      class="camera-video"
+      muted=""
+      playsinline=""
+    />
+    <canvas
+      style="display:none"
+    />
+    <div
+      class="camera-overlay"
+    >
+      <div
+        class="tap-instruction"
+      >
+        👆 Tap to capture
+      </div>
+    </div>
+    
+  </div>
+</div>
+`;
+
+exports[`CameraScreen > shows error state when camera access is denied 1`] = `
+<div>
+  <div
+    class="camera-screen"
+  >
+    <div
+      class="error-overlay"
+    >
+      <p>
+        Unable to access camera. Please grant camera permissions.
+      </p>
+      <button>
+        Go Back
+      </button>
+    </div>
+    
+    <video
+      autoplay=""
+      class="camera-video"
+      muted=""
+      playsinline=""
+    />
+    <canvas
+      style="display:none"
+    />
+    <div
+      class="camera-overlay"
+    >
+      <div
+        class="tap-instruction"
+      >
+        👆 Tap to capture
+      </div>
+    </div>
+    
+  </div>
+</div>
+`;
+
+exports[`CameraScreen > shows loading state initially 1`] = `
+<div>
+  <div
+    class="camera-screen"
+  >
+    
+    <div
+      class="loading-overlay"
+    >
+      <p>
+        Loading camera...
+      </p>
+    </div>
+    <video
+      autoplay=""
+      class="camera-video"
+      muted=""
+      playsinline=""
+    />
+    <canvas
+      style="display:none"
+    />
+    <div
+      class="camera-overlay"
+    >
+      <div
+        class="tap-instruction"
+      >
+        👆 Tap to capture
+      </div>
+    </div>
+    
+  </div>
+</div>
+`;
