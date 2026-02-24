@@ -36,6 +36,21 @@ jobs:
           
       - name: Install dependencies
         run: npm ci
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright OS dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
         
       - name: Bump CalVer version
         run: |
@@ -60,7 +75,14 @@ jobs:
           fs.writeFileSync('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
           console.log('New version:', version);
           "
+
+      - name: Update snapshots
+        run: npm run test:update
+
+      - name: Commit version bump and updated snapshots
+        run: |
           git add package.json package-lock.json
+          git add -A e2e/__snapshots__ 2>/dev/null || true
           git diff --staged --quiet || (git commit -m "chore: bump version to $(node -p "require('./package.json').version")" && git push)
 
       - name: Build
