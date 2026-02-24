@@ -2,8 +2,14 @@ import { defineConfig } from 'vite'
 // import basicSsl from '@vitejs/plugin-basic-ssl'
 import solid from 'vite-plugin-solid'
 import { VitePWA } from 'vite-plugin-pwa'
+import { readFileSync } from 'node:fs'
+
+const { version } = JSON.parse(readFileSync('./package.json', 'utf-8')) as { version: string }
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   plugins: [
     // basicSsl(), // For local development with HTTPS, can be removed for production
     solid(),
