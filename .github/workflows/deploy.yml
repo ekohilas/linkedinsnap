@@ -47,7 +47,7 @@ jobs:
           const year = now.getFullYear();
           const month = String(now.getMonth() + 1).padStart(2, '0');
           const parts = pkg.version.split('.');
-          let build = 1;
+          let build = 0;
           if (parts.length === 3 && parts[0] === String(year) && parts[1] === month) {
             build = parseInt(parts[2]) + 1;
           }
