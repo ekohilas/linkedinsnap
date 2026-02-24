@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -20,7 +20,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -30,6 +37,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
+      - name: Bump CalVer version
+        run: |
+          node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const parts = pkg.version.split('.');
+          let build = 0;
+          if (parts.length === 3 && parts[0] === String(year) && parts[1] === month) {
+            build = parseInt(parts[2]) + 1;
+          }
+          const version = year + '.' + month + '.' + build;
+          pkg.version = version;
+          lock.version = version;
+          lock.packages[''].version = version;
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          fs.writeFileSync('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
+          console.log('New version:', version);
+          "
+          git add package.json package-lock.json
+          git diff --staged --quiet || (git pull --rebase && git commit -m "chore: bump version to $(node -p "require('./package.json').version")" && git push)
+
       - name: Build
         run: npm run build
         
