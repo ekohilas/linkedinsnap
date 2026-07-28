@@ -97,7 +97,6 @@
 
 .help {
   margin-top: 1.5rem;
-  text-align: left;
 }
 
 .help-toggle {
@@ -135,6 +134,7 @@
   border-radius: 8px;
   margin: 0.75rem 0 0;
   padding: 1rem 1rem 1rem 2.25rem;
+  text-align: left;
 }
 
 .help-steps li {
