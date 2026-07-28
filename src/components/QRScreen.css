@@ -25,13 +25,69 @@
   margin: 1rem 0;
 }
 
-.qr-instructions code {
-  display: block;
+.username-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   background: rgba(255, 255, 255, 0.2);
-  padding: 1rem;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
   border-radius: 8px;
-  font-size: 1.2rem;
   margin: 1.5rem 0;
+}
+
+.username-prefix {
+  font-family: monospace;
+  font-size: 1.2rem;
+  opacity: 0.8;
+}
+
+.username-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: white;
+  font-family: monospace;
+  font-size: 1.2rem;
+  padding: 0.5rem 0;
+}
+
+.username-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.username-input:focus {
+  outline: none;
+}
+
+.username-form:focus-within {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.username-submit {
+  flex-shrink: 0;
+  background: white;
+  color: #0072b1;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.6rem 1rem;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.username-submit:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.username-submit:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.username-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .qr-instructions .example {

@@ -11,6 +11,16 @@ export function QRScreen(props: QRScreenProps) {
   const username = useHashParam();
   const [qrDataUrl, setQrDataUrl] = createSignal('');
   const [error, setError] = createSignal('');
+  const [usernameInput, setUsernameInput] = createSignal('');
+
+  const targetHash = () => `#${usernameInput().trim().replace(/^#/, '')}`;
+
+  const handleSubmit = (event: Event) => {
+    event.preventDefault();
+    const hash = targetHash();
+    if (hash === '#') return;
+    window.location.hash = hash;
+  };
 
   createEffect(async () => {
     const user = username();
@@ -44,8 +54,33 @@ export function QRScreen(props: QRScreenProps) {
         fallback={
           <div class="qr-instructions">
             <h1>LinkedInSnap</h1>
-            <p>Add your LinkedIn username to the URL:</p>
-            <code>#{'{'}username{'}'}</code>
+            <p>
+              <label for="username-input">Enter your LinkedIn username:</label>
+            </p>
+            <form class="username-form" onSubmit={handleSubmit}>
+              <span class="username-prefix">#</span>
+              <input
+                id="username-input"
+                class="username-input"
+                type="text"
+                name="username"
+                value={usernameInput()}
+                onInput={(event) => setUsernameInput(event.currentTarget.value)}
+                placeholder="username"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck={false}
+                enterkeyhint="go"
+              />
+              <button
+                class="username-submit"
+                type="submit"
+                disabled={targetHash() === '#'}
+                aria-label="Show QR code"
+              >
+                →
+              </button>
+            </form>
             <p class="example">Example: #ekohilas</p>
           </div>
         }
