@@ -5,6 +5,14 @@ test('QR instructions view', async ({ page }) => {
   await expect(page).toHaveScreenshot('qr-instructions.png')
 })
 
+test('username field navigates to the QR code view', async ({ page }) => {
+  await page.goto('/')
+  await page.fill('.username-input', 'ekohilas')
+  await page.click('.username-submit')
+  await page.waitForSelector('.qr-code')
+  expect(new URL(page.url()).hash).toBe('#ekohilas')
+})
+
 test('QR code view', async ({ page }) => {
   await page.goto('/#ekohilas')
   await page.waitForSelector('.qr-code')
