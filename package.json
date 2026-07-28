@@ -1,7 +1,7 @@
 {
   "name": "linkedinsnap",
   "private": true,
-  "version": "2026.02.4",
+  "version": "2026.07.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
