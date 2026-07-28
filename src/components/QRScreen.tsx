@@ -39,7 +39,6 @@ export function QRScreen(props: QRScreenProps) {
 
   return (
     <div class="qr-screen">
-      <span class="version-label">v{__APP_VERSION__}</span>
       <Show
         when={username()}
         fallback={
