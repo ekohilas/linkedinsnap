@@ -95,6 +95,62 @@
   opacity: 0.8;
 }
 
+.help {
+  margin-top: 1.5rem;
+}
+
+.help-toggle {
+  cursor: pointer;
+  display: inline-block;
+  font-size: 0.95rem;
+  list-style: none;
+  opacity: 0.9;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.help-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.help-toggle::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 0.4rem;
+  text-decoration: none;
+  transition: transform 0.2s;
+}
+
+.help[open] .help-toggle::before {
+  transform: rotate(90deg);
+}
+
+.help-toggle:hover {
+  opacity: 1;
+}
+
+.help-steps {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  margin: 0.75rem 0 0;
+  padding: 1rem 1rem 1rem 2.25rem;
+  text-align: left;
+}
+
+.help-steps li {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.help-steps li + li {
+  margin-top: 0.6rem;
+}
+
+.help-link {
+  color: white;
+  font-weight: 600;
+}
+
 .qr-container {
   text-align: center;
   background: white;
