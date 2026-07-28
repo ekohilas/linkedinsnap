@@ -24,7 +24,7 @@ export default defineConfig({
         background_color: '#0072b1',
         display: 'standalone',
         scope: '/linkedinsnap/',
-        start_url: '/linkedinsnap/#ekohilas',
+        start_url: '/linkedinsnap/',
         icons: [
           {
             src: 'icon-192.png',
