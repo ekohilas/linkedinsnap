@@ -13,6 +13,42 @@ test('username field navigates to the QR code view', async ({ page }) => {
   expect(new URL(page.url()).hash).toBe('#ekohilas')
 })
 
+test('help menu unzips the steps', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.help-steps')).toBeHidden()
+  await page.click('.help-toggle')
+  await expect(page.locator('.help-steps li')).toHaveCount(3)
+  await expect(page.locator('.help-link')).toHaveAttribute(
+    'href',
+    'https://linkedin.com/in/me',
+  )
+  await expect(page).toHaveScreenshot('qr-help.png')
+})
+
+test('pasting a profile URL extracts the username', async ({ page }) => {
+  const urls = [
+    'https://www.linkedin.com/in/ekohilas/',
+    'https://linkedin.com/in/ekohilas?originalSubdomain=au',
+    'linkedin.com/in/ekohilas',
+  ]
+
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.goto('/')
+  for (const url of urls) {
+    await page.fill('.username-input', '')
+    await page.locator('.username-input').focus()
+    await page.evaluate(async (text) => {
+      await navigator.clipboard.writeText(text)
+    }, url)
+    await page.keyboard.press('ControlOrMeta+V')
+    await expect(page.locator('.username-input')).toHaveValue('ekohilas')
+  }
+
+  await page.click('.username-submit')
+  await page.waitForSelector('.qr-code')
+  expect(new URL(page.url()).hash).toBe('#ekohilas')
+})
+
 test('QR code view', async ({ page }) => {
   await page.goto('/#ekohilas')
   await page.waitForSelector('.qr-code')

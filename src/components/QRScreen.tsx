@@ -1,6 +1,7 @@
 import { createSignal, createEffect, Show } from 'solid-js';
 import QRCode from 'qrcode';
 import { useHashParam } from '../hooks/useHashParam';
+import { extractUsername } from '../utils/username';
 import './QRScreen.css';
 
 interface QRScreenProps {
@@ -13,7 +14,16 @@ export function QRScreen(props: QRScreenProps) {
   const [error, setError] = createSignal('');
   const [usernameInput, setUsernameInput] = createSignal('');
 
-  const targetHash = () => `#${usernameInput().trim().replace(/^#/, '')}`;
+  const targetHash = () => `#${extractUsername(usernameInput())}`;
+
+  const handlePaste = (event: ClipboardEvent) => {
+    const pasted = event.clipboardData?.getData('text') ?? '';
+    const extracted = extractUsername(pasted);
+    // Only take over the paste when there was a URL to unwrap.
+    if (extracted === pasted.trim()) return;
+    event.preventDefault();
+    setUsernameInput(extracted);
+  };
 
   const handleSubmit = (event: Event) => {
     event.preventDefault();
@@ -66,7 +76,8 @@ export function QRScreen(props: QRScreenProps) {
                 name="username"
                 value={usernameInput()}
                 onInput={(event) => setUsernameInput(event.currentTarget.value)}
-                placeholder="username"
+                onPaste={handlePaste}
+                placeholder="username or URL"
                 autocapitalize="none"
                 autocorrect="off"
                 spellcheck={false}
@@ -82,6 +93,24 @@ export function QRScreen(props: QRScreenProps) {
               </button>
             </form>
             <p class="example">Example: #ekohilas</p>
+            <details class="help">
+              <summary class="help-toggle">Need help?</summary>
+              <ol class="help-steps">
+                <li>
+                  Click{' '}
+                  <a
+                    class="help-link"
+                    href="https://linkedin.com/in/me"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    linkedin.com/in/me
+                  </a>
+                </li>
+                <li>Navigate to your contact info to find your URL</li>
+                <li>Paste the URL above</li>
+              </ol>
+            </details>
           </div>
         }
       >
