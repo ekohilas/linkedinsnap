@@ -76,8 +76,6 @@ export function CameraScreen(props: CameraScreenProps) {
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: 'LinkedIn Selfie',
-          text: 'My LinkedIn connection selfie'
         });
       } else {
         // Fallback: download link (desktop browsers)
