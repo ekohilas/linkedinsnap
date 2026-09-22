@@ -8,14 +8,16 @@ A Progressive Web App (PWA) that makes it easy to share your LinkedIn profile an
 2. A QR code appears showing your LinkedIn profile
 3. Tap the QR code to open the camera (selfie mode)
 4. Tap the screen to capture a photo
-5. Use the share sheet to save the photo to your camera roll
-6. The app returns to the QR code screen
+5. The photo is saved to the device and the gallery opens
+6. Tap a photo to open the share sheet and save it to your camera roll
+7. The buttons at the bottom switch between the QR code, the camera and the gallery
 
 ## Features
 
 ✅ No backend required  
 ✅ Hostable via GitHub Pages  
 ✅ Progressive Web App - installable on mobile devices  
+✅ Keeps a gallery of your selfies in the browser's local storage  
 ✅ Saves photos to camera roll via Web Share API  
 ✅ Built with SolidJS and TypeScript  
 ✅ Front-facing camera (selfie mode) by default  
@@ -30,6 +32,7 @@ A Progressive Web App (PWA) that makes it easy to share your LinkedIn profile an
 - **PWA**: vite-plugin-pwa
 - **Camera**: getUserMedia API
 - **Photo Save**: Web Share API (with download fallback)
+- **Photo Storage**: localStorage
 
 ## Development
 
@@ -112,7 +115,7 @@ https://ekohilas.github.io/linkedinsnap#ekohilas
 When they scan or visit the link:
 - They see your LinkedIn QR code
 - They can tap it to take a selfie with you
-- The photo saves to their camera roll
+- The selfie lands in the gallery, and tapping it saves the photo to their camera roll
 
 ## Browser Compatibility
 
@@ -130,9 +133,15 @@ The app requires camera access. On first use:
 
 Note: iOS Safari may ask for camera permission each session for web apps.
 
+## Photo Storage
+
+Captured selfies are downscaled and kept in `localStorage`, so the gallery
+survives a reload. The roll holds the 12 most recent photos; older ones are
+dropped as newer ones come in (and sooner if storage runs out).
+
 ## Photo Saving
 
-The app uses the **Web Share API** which:
+Tapping a photo in the gallery uses the **Web Share API** which:
 - Opens the native share sheet on mobile devices
 - Allows users to select "Save Image" or "Add to Photos"
 - Requires one additional tap, but works reliably across iOS and Android

@@ -2,10 +2,13 @@ import { createSignal, createEffect, Show } from 'solid-js';
 import QRCode from 'qrcode';
 import { useHashParam } from '../hooks/useHashParam';
 import { extractUsername } from '../utils/username';
+import { NavBar, NavButton } from './NavBar';
+import { ImageIcon } from './icons';
 import './QRScreen.css';
 
 interface QRScreenProps {
   onTap: () => void;
+  onGallery: () => void;
 }
 
 export function QRScreen(props: QRScreenProps) {
@@ -127,6 +130,12 @@ export function QRScreen(props: QRScreenProps) {
           </Show>
         </div>
       </Show>
+
+      <NavBar>
+        <NavButton label="Show selfies" class="nav-gallery" onClick={props.onGallery}>
+          <ImageIcon />
+        </NavButton>
+      </NavBar>
     </div>
   );
 }

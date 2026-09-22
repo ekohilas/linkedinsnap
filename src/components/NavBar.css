@@ -1,0 +1,35 @@
+.nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+}
+
+.nav-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 52px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.nav-button:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.nav-button:active {
+  transform: scale(0.94);
+}

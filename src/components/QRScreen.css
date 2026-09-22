@@ -5,7 +5,8 @@
   align-items: center;
   min-height: 100vh;
   background: linear-gradient(180deg, #0072b1 50%, #ffffff 100%);
-  padding: 20px;
+  /* Leave the bottom clear for the fixed nav bar. */
+  padding: 20px 20px calc(5.5rem + env(safe-area-inset-bottom));
 }
 
 .qr-instructions {
@@ -205,4 +206,19 @@
   color: #dc2626;
   font-size: 1rem;
   margin-top: 1rem;
+}
+
+/* The gradient already fades to white here, so skip the dark nav scrim. */
+.qr-screen .nav-bar {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.qr-screen .nav-button {
+  background: #0072b1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.qr-screen .nav-button:hover {
+  background: #084d92;
 }
