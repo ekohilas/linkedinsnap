@@ -6,6 +6,10 @@ import { readFileSync } from 'node:fs'
 
 const { version } = JSON.parse(readFileSync('./package.json', 'utf-8')) as { version: string }
 
+// GitHub Pages serves the app from a subpath, but preview deploys (Surge) serve it
+// from the domain root, so allow the base to be overridden at build time.
+const base = process.env.BASE_PATH ?? '/linkedinsnap/'
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(version),
@@ -23,8 +27,8 @@ export default defineConfig({
         theme_color: '#0072b1',
         background_color: '#0072b1',
         display: 'standalone',
-        scope: '/linkedinsnap/',
-        start_url: '/linkedinsnap/',
+        scope: base,
+        start_url: base,
         icons: [
           {
             src: 'icon-192.png',
@@ -59,5 +63,5 @@ export default defineConfig({
       }
     })
   ],
-  base: '/linkedinsnap/',
+  base,
 })
