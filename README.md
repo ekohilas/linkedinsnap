@@ -84,6 +84,23 @@ The workflow in `.github/workflows/deploy.yml` will automatically:
 
 Your app will be available at: `https://YOUR_USERNAME.github.io/linkedinsnap/`
 
+## Pull Request Previews
+
+Every pull request is deployed to a temporary [Surge](https://surge.sh/) URL by
+`.github/workflows/preview.yml`, which comments the link on the PR and tears the
+deployment down when the PR is closed or merged.
+
+This requires a `SURGE_TOKEN` repository secret (generate one with
+`npx surge token`).
+
+Previews are served from the domain root rather than the `/linkedinsnap/`
+subpath used by GitHub Pages, so the preview build overrides the base path by
+setting `BASE_PATH=/`. To reproduce a preview build locally:
+
+```bash
+BASE_PATH=/ npm run build
+```
+
 ## Usage Example
 
 Share this link with people you meet:

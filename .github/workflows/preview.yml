@@ -1,0 +1,49 @@
+name: PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Deploy preview
+        uses: afc163/surge-preview@v1
+        id: preview_step
+        with:
+          surge_token: ${{ secrets.SURGE_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dist: dist
+          failOnError: true
+          teardown: 'true'
+          build: |
+            npm ci
+            npm run build
+        env:
+          # Surge serves the preview from the domain root, not the /linkedinsnap/
+          # subpath that GitHub Pages uses. The action runs each build command
+          # through exec() without a shell, so this cannot be an inline
+          # assignment on the command itself.
+          BASE_PATH: '/'
+
+      - name: Show preview URL
+        if: github.event.action != 'closed'
+        run: echo "Preview URL => ${{ steps.preview_step.outputs.preview_url }}"
