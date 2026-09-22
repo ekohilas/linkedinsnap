@@ -234,3 +234,91 @@ test('the gallery navigates back to the QR code and the camera', async ({ page }
   await page.click('.nav-camera')
   await expect(page.locator('.camera-video')).toBeVisible()
 })
+
+test.describe('a sideways phone', () => {
+  const IPHONE_UA =
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
+
+  // iOS pins the camera frames to the device, so the preview needs spinning
+  // back once the interface turns; the landscape viewport matches the angle.
+  test.use({ viewport: { width: 731, height: 411 } })
+
+  const turnSideways = async (page: Page) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(screen.orientation, 'angle', { get: () => 90 })
+    })
+  }
+
+  const openCamera = async (page: Page) => {
+    await page.goto('/#ekohilas')
+    await page.waitForSelector('.qr-code')
+    await page.click('.qr-code-wrapper')
+    await page.waitForSelector('.loading-overlay', { state: 'hidden' })
+  }
+
+  test.describe('on iOS', () => {
+    test.use({ userAgent: IPHONE_UA })
+
+    test('the preview is spun back to match the interface', async ({ page }) => {
+      await fakeCamera(page)
+      await turnSideways(page)
+      await openCamera(page)
+
+      const preview = page.locator('.camera-video')
+      await expect(preview).toHaveAttribute('style', /rotate\(90deg\)/)
+      // The mirror stays outermost so the viewer is still flipped left to right.
+      await expect(preview).toHaveAttribute('style', /scaleX\(-1\) rotate/)
+
+      // A quarter turn swaps the axes, so the box swaps to keep covering.
+      const box = await preview.evaluate((video) => ({
+        width: (video as HTMLElement).offsetWidth,
+        height: (video as HTMLElement).offsetHeight,
+      }))
+      expect(box).toEqual({ width: 411, height: 731 })
+    })
+
+    test('a photo taken sideways is stored the right way up', async ({ page }) => {
+      await fakeCamera(page)
+      await turnSideways(page)
+      await openCamera(page)
+      await page.click('.camera-video')
+
+      await expect(page.locator('.gallery-photo')).toHaveCount(1)
+      const size = await page.evaluate(async () => {
+        const [photo] = JSON.parse(
+          localStorage.getItem('linkedinsnap:photos') ?? '[]',
+        )
+        const image = new Image()
+        image.src = photo.dataUrl
+        await image.decode()
+        return { width: image.naturalWidth, height: image.naturalHeight }
+      })
+      // The 640x480 camera frame lands upright rather than on its side.
+      expect(size).toEqual({ width: 480, height: 640 })
+    })
+  })
+
+  test('other engines already orient the frames, so they are left alone', async ({
+    page,
+  }) => {
+    await fakeCamera(page)
+    await turnSideways(page)
+    await openCamera(page)
+
+    await expect(page.locator('.camera-video')).not.toHaveAttribute(
+      'style',
+      /rotate/,
+    )
+    await page.click('.camera-video')
+    const size = await page.evaluate(async () => {
+      const [photo] = JSON.parse(
+        localStorage.getItem('linkedinsnap:photos') ?? '[]',
+      )
+      const image = new Image()
+      image.src = photo.dataUrl
+      await image.decode()
+      return { width: image.naturalWidth, height: image.naturalHeight }
+    })
+    expect(size).toEqual({ width: 640, height: 480 })
+  })
+})
