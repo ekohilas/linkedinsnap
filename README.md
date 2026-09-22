@@ -94,8 +94,12 @@ This requires a `SURGE_TOKEN` repository secret (generate one with
 `npx surge token`).
 
 Previews are served from the domain root rather than the `/linkedinsnap/`
-subpath used by GitHub Pages, so the preview build overrides the base path with
-`BASE_PATH=/ npm run build`.
+subpath used by GitHub Pages, so the preview build overrides the base path by
+setting `BASE_PATH=/`. To reproduce a preview build locally:
+
+```bash
+BASE_PATH=/ npm run build
+```
 
 ## Usage Example
 
