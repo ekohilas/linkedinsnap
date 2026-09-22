@@ -1,9 +1,15 @@
 import { createSignal, onMount, onCleanup, Show } from 'solid-js';
+import { addPhoto } from '../utils/photos';
 import './CameraScreen.css';
 
 interface CameraScreenProps {
   onCapture: () => void;
+  onBack: () => void;
 }
+
+/** Keeps stored photos small enough for the localStorage budget. */
+const MAX_STORED_WIDTH = 800;
+const STORED_QUALITY = 0.75;
 
 export function CameraScreen(props: CameraScreenProps) {
   let videoRef: HTMLVideoElement | undefined;
@@ -25,7 +31,6 @@ export function CameraScreen(props: CameraScreenProps) {
       if (videoRef) {
         videoRef.srcObject = stream;
         videoRef.play();
-        setIsLoading(false);
       }
     } catch (err) {
       console.error('Camera access error:', err);
@@ -40,61 +45,29 @@ export function CameraScreen(props: CameraScreenProps) {
     }
   });
 
-  const capturePhoto = async () => {
-    if (!videoRef || !canvasRef || isCapturing()) return;
+  const capturePhoto = () => {
+    // Nothing to draw until the first frame has landed.
+    if (!videoRef || !canvasRef || isLoading() || isCapturing()) return;
     
     setIsCapturing(true);
 
     try {
-      // Draw video frame to canvas
+      // Draw video frame to canvas, scaled down so the roll fits in storage
       const context = canvasRef.getContext('2d');
       if (!context) throw new Error('Canvas context not available');
 
-      canvasRef.width = videoRef.videoWidth;
-      canvasRef.height = videoRef.videoHeight;
-      context.drawImage(videoRef, 0, 0);
+      const scale = Math.min(1, MAX_STORED_WIDTH / videoRef.videoWidth);
+      canvasRef.width = Math.round(videoRef.videoWidth * scale);
+      canvasRef.height = Math.round(videoRef.videoHeight * scale);
+      context.drawImage(videoRef, 0, 0, canvasRef.width, canvasRef.height);
 
-      // Convert canvas to blob
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvasRef!.toBlob(
-          (blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error('Failed to create blob'));
-          },
-          'image/jpeg',
-          0.95
-        );
-      });
-
-      // Create file with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const file = new File([blob], `linkedin-selfie-${timestamp}.jpg`, { 
-        type: 'image/jpeg' 
-      });
-
-      // Try Web Share API first (mobile devices)
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: 'LinkedIn Selfie',
-          text: 'My LinkedIn connection selfie'
-        });
-      } else {
-        // Fallback: download link (desktop browsers)
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `linkedin-selfie-${timestamp}.jpg`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
+      // Keep the photo in localStorage so the gallery survives a reload
+      addPhoto(canvasRef.toDataURL('image/jpeg', STORED_QUALITY));
     } catch (err) {
       console.error('Capture error:', err);
     } finally {
       setIsCapturing(false);
-      // Always return to QR screen after capture attempt
+      // Always show the gallery after a capture attempt
       props.onCapture();
     }
   };
@@ -104,7 +77,7 @@ export function CameraScreen(props: CameraScreenProps) {
       <Show when={error()}>
         <div class="error-overlay">
           <p>{error()}</p>
-          <button onClick={props.onCapture}>Go Back</button>
+          <button onClick={props.onBack}>Go Back</button>
         </div>
       </Show>
 
@@ -118,6 +91,7 @@ export function CameraScreen(props: CameraScreenProps) {
         ref={videoRef}
         class="camera-video"
         onClick={capturePhoto}
+        onLoadedData={() => setIsLoading(false)}
         autoplay
         playsinline
         muted
