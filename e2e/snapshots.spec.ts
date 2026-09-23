@@ -172,7 +172,7 @@ test.describe('gallery with photos', () => {
     await page.waitForSelector('.qr-code')
     await page.click('.qr-code-wrapper')
     await page.waitForSelector('.loading-overlay', { state: 'hidden' })
-    await page.click('.camera-video')
+    await page.click('.camera-preview')
 
     await expect(page.locator('.gallery-photo')).toHaveCount(1)
     const stored = await page.evaluate(() =>
@@ -184,7 +184,7 @@ test.describe('gallery with photos', () => {
     // A second selfie stacks on top of the first.
     await page.click('.nav-camera')
     await page.waitForSelector('.loading-overlay', { state: 'hidden' })
-    await page.click('.camera-video')
+    await page.click('.camera-preview')
     await expect(page.locator('.gallery-photo')).toHaveCount(2)
 
     // Freeze the capture times so the captions are stable across runs.
@@ -212,7 +212,7 @@ test('the gallery survives a reload', async ({ page }) => {
   await page.waitForSelector('.qr-code')
   await page.click('.qr-code-wrapper')
   await page.waitForSelector('.loading-overlay', { state: 'hidden' })
-  await page.click('.camera-video')
+  await page.click('.camera-preview')
   await expect(page.locator('.gallery-photo')).toHaveCount(1)
 
   await page.reload()
@@ -232,5 +232,5 @@ test('the gallery navigates back to the QR code and the camera', async ({ page }
 
   await page.click('.nav-gallery')
   await page.click('.nav-camera')
-  await expect(page.locator('.camera-video')).toBeVisible()
+  await expect(page.locator('.camera-preview')).toBeVisible()
 })

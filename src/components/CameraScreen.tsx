@@ -14,13 +14,53 @@ const STORED_QUALITY = 0.75;
 export function CameraScreen(props: CameraScreenProps) {
   let videoRef: HTMLVideoElement | undefined;
   let canvasRef: HTMLCanvasElement | undefined;
+  let previewRef: HTMLCanvasElement | undefined;
   let streamRef: MediaStream | undefined;
+  let previewFrame = 0;
 
   const [error, setError] = createSignal('');
   const [isLoading, setIsLoading] = createSignal(true);
   const [isCapturing, setIsCapturing] = createSignal(false);
 
+  // iOS Safari briefly draws the <video> as a small letterboxed box when a
+  // rotation flips the camera's frames between portrait and landscape. Paint
+  // the frames onto a canvas on top instead, cropped here to the screen's
+  // shape like object-fit: cover. The canvas always has the same shape as its
+  // box, so it never relies on Safari refitting it when the frames change.
+  const drawPreview = () => {
+    previewFrame = requestAnimationFrame(drawPreview);
+    const context = previewRef?.getContext('2d');
+    if (!videoRef || !previewRef || !context) return;
+
+    const { videoWidth, videoHeight } = videoRef;
+    const { clientWidth, clientHeight } = previewRef;
+    if (!videoWidth || !videoHeight || !clientWidth || !clientHeight) return;
+
+    // The largest slice of the frame with the screen's shape, kept at the
+    // camera's own resolution.
+    const crop = Math.min(videoWidth / clientWidth, videoHeight / clientHeight);
+    const width = Math.round(clientWidth * crop);
+    const height = Math.round(clientHeight * crop);
+    if (previewRef.width !== width || previewRef.height !== height) {
+      previewRef.width = width;
+      previewRef.height = height;
+    }
+    context.drawImage(
+      videoRef,
+      (videoWidth - width) / 2,
+      (videoHeight - height) / 2,
+      width,
+      height,
+      0,
+      0,
+      width,
+      height,
+    );
+  };
+
   onMount(async () => {
+    previewFrame = requestAnimationFrame(drawPreview);
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user' },
@@ -40,6 +80,7 @@ export function CameraScreen(props: CameraScreenProps) {
   });
 
   onCleanup(() => {
+    cancelAnimationFrame(previewFrame);
     if (streamRef) {
       streamRef.getTracks().forEach(track => track.stop());
     }
@@ -90,12 +131,13 @@ export function CameraScreen(props: CameraScreenProps) {
       <video 
         ref={videoRef}
         class="camera-video"
-        onClick={capturePhoto}
         onLoadedData={() => setIsLoading(false)}
         autoplay
         playsinline
         muted
       />
+
+      <canvas ref={previewRef} class="camera-preview" onClick={capturePhoto} />
 
       <canvas ref={canvasRef} style="display: none;" />
 
