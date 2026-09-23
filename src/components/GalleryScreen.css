@@ -29,6 +29,45 @@
   margin: 0;
 }
 
+.swipe-item {
+  position: relative;
+  overflow: hidden;
+  /* Horizontal drags are ours; vertical ones still scroll the gallery. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.swipe-action {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 1.5rem;
+  background: #7a1f1f;
+  color: white;
+  transition: background 0.15s ease;
+}
+
+.swipe-action-armed {
+  background: #d93025;
+}
+
+.swipe-content {
+  position: relative;
+  background: #0b1d2a;
+  transition: transform 0.2s ease;
+}
+
+.swipe-content-dragging {
+  transition: none;
+}
+
+.swipe-item-deleting {
+  pointer-events: none;
+}
+
 .gallery-photo {
   display: block;
   /* Landscape tiles that span the full width of the screen. */

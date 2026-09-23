@@ -65,3 +65,7 @@ export function addPhoto(dataUrl: string): Photo[] {
   };
   return writePhotos([photo, ...loadPhotos()]);
 }
+
+export function removePhoto(id: string): Photo[] {
+  return writePhotos(loadPhotos().filter((photo) => photo.id !== id));
+}

@@ -234,3 +234,79 @@ test('the gallery navigates back to the QR code and the camera', async ({ page }
   await page.click('.nav-camera')
   await expect(page.locator('.camera-preview')).toBeVisible()
 })
+
+test.describe('swiping a gallery photo', () => {
+  const seedPhotos = async (page: Page) => {
+    await page.goto('/#ekohilas')
+    await page.evaluate(() => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 40
+      canvas.height = 30
+      const ctx = canvas.getContext('2d')
+      const photos = ['#4169E1', '#DC143C'].map((color, index) => {
+        if (ctx) {
+          ctx.fillStyle = color
+          ctx.fillRect(0, 0, canvas.width, canvas.height)
+        }
+        return {
+          id: `photo-${index}`,
+          dataUrl: canvas.toDataURL('image/jpeg'),
+          takenAt: Date.UTC(2026, 0, 2, 3, 4) - index * 60_000,
+        }
+      })
+      localStorage.setItem('linkedinsnap:photos', JSON.stringify(photos))
+    })
+    await page.reload()
+    await page.waitForSelector('.qr-code')
+    await page.click('.nav-gallery')
+    await expect(page.locator('.gallery-photo')).toHaveCount(2)
+  }
+
+  const swipeLeft = async (page: Page, index: number, fraction: number) => {
+    const box = await page.locator('.swipe-item').nth(index).boundingBox()
+    if (!box) throw new Error('swipe item not visible')
+    const y = box.y + box.height / 2
+    const startX = box.x + box.width * 0.9
+    await page.mouse.move(startX, y)
+    await page.mouse.down()
+    await page.mouse.move(startX - box.width * fraction, y, { steps: 10 })
+    await page.mouse.up()
+  }
+
+  const storedIds = (page: Page) =>
+    page.evaluate(() =>
+      JSON.parse(localStorage.getItem('linkedinsnap:photos') ?? '[]').map(
+        (photo: { id: string }) => photo.id,
+      ),
+    )
+
+  test('a long swipe left deletes the photo', async ({ page }) => {
+    await seedPhotos(page)
+    await swipeLeft(page, 0, 0.6)
+
+    await expect(page.locator('.gallery-photo')).toHaveCount(1)
+    expect(await storedIds(page)).toEqual(['photo-1'])
+  })
+
+  test('a short swipe springs back and keeps the photo', async ({ page }) => {
+    await seedPhotos(page)
+    await swipeLeft(page, 0, 0.15)
+
+    await expect(page.locator('.swipe-content').first()).toHaveCSS(
+      'transform',
+      'matrix(1, 0, 0, 1, 0, 0)',
+    )
+    await expect(page.locator('.gallery-photo')).toHaveCount(2)
+    expect(await storedIds(page)).toEqual(['photo-0', 'photo-1'])
+  })
+
+  test('deleting the last photo shows the empty gallery', async ({ page }) => {
+    await seedPhotos(page)
+    await swipeLeft(page, 0, 0.6)
+    await expect(page.locator('.gallery-photo')).toHaveCount(1)
+    await swipeLeft(page, 0, 0.6)
+
+    await expect(page.locator('.gallery-empty')).toBeVisible()
+    expect(await storedIds(page)).toEqual([])
+  })
+})
