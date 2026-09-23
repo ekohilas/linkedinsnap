@@ -10,12 +10,21 @@
   align-items: center;
 }
 
-.camera-video {
+/* The canvas mirrors the video's frames on top of it; the video only shows
+   through until the first frame is painted. */
+.camera-video,
+.camera-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  cursor: pointer;
   transform: scaleX(-1);
+}
+
+.camera-preview {
+  cursor: pointer;
 }
 
 .camera-overlay {

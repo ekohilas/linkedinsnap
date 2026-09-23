@@ -14,13 +14,35 @@ const STORED_QUALITY = 0.75;
 export function CameraScreen(props: CameraScreenProps) {
   let videoRef: HTMLVideoElement | undefined;
   let canvasRef: HTMLCanvasElement | undefined;
+  let previewRef: HTMLCanvasElement | undefined;
   let streamRef: MediaStream | undefined;
+  let previewFrame = 0;
 
   const [error, setError] = createSignal('');
   const [isLoading, setIsLoading] = createSignal(true);
   const [isCapturing, setIsCapturing] = createSignal(false);
 
+  // iOS Safari briefly draws the <video> as a small letterboxed box when a
+  // rotation flips the camera's frames between portrait and landscape. Paint
+  // the frames onto a canvas on top instead: it takes each frame's size and
+  // covers the screen straight away.
+  const drawPreview = () => {
+    previewFrame = requestAnimationFrame(drawPreview);
+    const context = previewRef?.getContext('2d');
+    if (!videoRef || !previewRef || !context) return;
+
+    const { videoWidth, videoHeight } = videoRef;
+    if (!videoWidth || !videoHeight) return;
+    if (previewRef.width !== videoWidth || previewRef.height !== videoHeight) {
+      previewRef.width = videoWidth;
+      previewRef.height = videoHeight;
+    }
+    context.drawImage(videoRef, 0, 0, videoWidth, videoHeight);
+  };
+
   onMount(async () => {
+    previewFrame = requestAnimationFrame(drawPreview);
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user' },
@@ -40,6 +62,7 @@ export function CameraScreen(props: CameraScreenProps) {
   });
 
   onCleanup(() => {
+    cancelAnimationFrame(previewFrame);
     if (streamRef) {
       streamRef.getTracks().forEach(track => track.stop());
     }
@@ -90,12 +113,13 @@ export function CameraScreen(props: CameraScreenProps) {
       <video 
         ref={videoRef}
         class="camera-video"
-        onClick={capturePhoto}
         onLoadedData={() => setIsLoading(false)}
         autoplay
         playsinline
         muted
       />
+
+      <canvas ref={previewRef} class="camera-preview" onClick={capturePhoto} />
 
       <canvas ref={canvasRef} style="display: none;" />
 
