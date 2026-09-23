@@ -236,16 +236,37 @@ test('the gallery navigates back to the QR code and the camera', async ({ page }
 })
 
 test.describe('a sideways phone', () => {
-  const IPHONE_UA =
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
-
-  // iOS pins the camera frames to the device, so the preview needs spinning
-  // back once the interface turns; the landscape viewport matches the angle.
-  test.use({ viewport: { width: 731, height: 411 } })
-
-  const turnSideways = async (page: Page) => {
+  // iOS pins the camera frames to the phone's natural portrait orientation, so
+  // in landscape they arrive a quarter turn out and portrait-shaped.
+  const portraitCamera = async (page: Page) => {
     await page.addInitScript(() => {
-      Object.defineProperty(screen.orientation, 'angle', { get: () => 90 })
+      const canvas = document.createElement('canvas')
+      canvas.width = 480
+      canvas.height = 640
+      const ctx = canvas.getContext('2d')!
+      const draw = () => {
+        ctx.fillStyle = '#87CEEB'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.fillStyle = '#DC143C'
+        ctx.fillRect(40, 40, 160, 80)
+      }
+      draw()
+      setInterval(draw, 100)
+      Object.defineProperty(navigator, 'mediaDevices', {
+        value: { getUserMedia: () => Promise.resolve(canvas.captureStream(30)) },
+        writable: true,
+        configurable: true,
+      })
+    })
+  }
+
+  /** A settable orientation angle, as the phone reports while being turned. */
+  const fakeOrientation = async (page: Page) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(screen.orientation, 'angle', {
+        get: () => (window as unknown as { __angle?: number }).__angle ?? 0,
+        configurable: true,
+      })
     })
   }
 
@@ -256,58 +277,104 @@ test.describe('a sideways phone', () => {
     await page.waitForSelector('.loading-overlay', { state: 'hidden' })
   }
 
-  test.describe('on iOS', () => {
-    test.use({ userAgent: IPHONE_UA })
+  const turnSideways = async (page: Page, angle = 90) => {
+    await page.evaluate((a) => {
+      ;(window as unknown as { __angle?: number }).__angle = a
+    }, angle)
+    await page.setViewportSize({ width: 731, height: 411 })
+    await expect(page.locator('.camera-video')).toHaveAttribute('style', /./)
+  }
 
-    test('the preview is spun back to match the interface', async ({ page }) => {
-      await fakeCamera(page)
-      await turnSideways(page)
-      await openCamera(page)
-
-      const preview = page.locator('.camera-video')
-      await expect(preview).toHaveAttribute('style', /rotate\(90deg\)/)
-      // The mirror stays outermost so the viewer is still flipped left to right.
-      await expect(preview).toHaveAttribute('style', /scaleX\(-1\) rotate/)
-
-      // A quarter turn swaps the axes, so the box swaps to keep covering.
-      const box = await preview.evaluate((video) => ({
-        width: (video as HTMLElement).offsetWidth,
-        height: (video as HTMLElement).offsetHeight,
-      }))
-      expect(box).toEqual({ width: 411, height: 731 })
-    })
-
-    test('a photo taken sideways is stored the right way up', async ({ page }) => {
-      await fakeCamera(page)
-      await turnSideways(page)
-      await openCamera(page)
-      await page.click('.camera-video')
-
-      await expect(page.locator('.gallery-photo')).toHaveCount(1)
-      const size = await page.evaluate(async () => {
-        const [photo] = JSON.parse(
-          localStorage.getItem('linkedinsnap:photos') ?? '[]',
-        )
-        const image = new Image()
-        image.src = photo.dataUrl
-        await image.decode()
-        return { width: image.naturalWidth, height: image.naturalHeight }
-      })
-      // The 640x480 camera frame lands upright rather than on its side.
-      expect(size).toEqual({ width: 480, height: 640 })
-    })
-  })
-
-  test('other engines already orient the frames, so they are left alone', async ({
+  test('turning the phone after the camera opens spins the preview back', async ({
     page,
   }) => {
-    await fakeCamera(page)
-    await turnSideways(page)
+    await portraitCamera(page)
+    await fakeOrientation(page)
     await openCamera(page)
+
+    const preview = page.locator('.camera-video')
+    // Upright to begin with: the frame and the screen are both portrait.
+    await expect(preview).not.toHaveAttribute('style', /rotate\(9|rotate\(2/)
+
+    await turnSideways(page)
+    await expect(preview).toHaveAttribute('style', /rotate\(90deg\)/)
+    // The mirror stays outermost so the viewer is still flipped left to right.
+    await expect(preview).toHaveAttribute('style', /scaleX\(-1\) rotate/)
+
+    // The box swaps with the axes, so the preview still covers the screen
+    // rather than being blown up and cropped to a slice of the frame.
+    const size = await preview.evaluate((video) => ({
+      width: (video as HTMLElement).offsetWidth,
+      height: (video as HTMLElement).offsetHeight,
+    }))
+    expect(size).toEqual({ width: 411, height: 731 })
+  })
+
+  test('turning the other way spins the preview the other way', async ({ page }) => {
+    await portraitCamera(page)
+    await fakeOrientation(page)
+    await openCamera(page)
+    await turnSideways(page, 270)
+    await expect(page.locator('.camera-video')).toHaveAttribute(
+      'style',
+      /rotate\(270deg\)/,
+    )
+  })
+
+  test('a photo taken sideways is stored the right way up', async ({ page }) => {
+    await portraitCamera(page)
+    await fakeOrientation(page)
+    await openCamera(page)
+    await turnSideways(page)
+    await page.click('.camera-video')
+
+    await expect(page.locator('.gallery-photo')).toHaveCount(1)
+    const size = await page.evaluate(async () => {
+      const [photo] = JSON.parse(
+        localStorage.getItem('linkedinsnap:photos') ?? '[]',
+      )
+      const image = new Image()
+      image.src = photo.dataUrl
+      await image.decode()
+      return { width: image.naturalWidth, height: image.naturalHeight }
+    })
+    // The 480x640 frame lands upright rather than on its side.
+    expect(size).toEqual({ width: 640, height: 480 })
+  })
+
+  test('a phone that will not report its angle is still spun upright', async ({
+    page,
+  }) => {
+    // Whatever the phone claims, a portrait frame on a landscape screen is a
+    // quarter turn out; leaving it sideways is not an option.
+    await portraitCamera(page)
+    await page.addInitScript(() => {
+      Object.defineProperty(screen.orientation, 'angle', {
+        get: () => 0,
+        configurable: true,
+      })
+      delete (window as unknown as { orientation?: number }).orientation
+    })
+    await openCamera(page)
+    await page.setViewportSize({ width: 731, height: 411 })
+
+    await expect(page.locator('.camera-video')).toHaveAttribute(
+      'style',
+      /rotate\(90deg\)/,
+    )
+  })
+
+  test('a frame that already matches the screen is left alone', async ({ page }) => {
+    // What every engine other than iOS hands over: the frame turns with the
+    // interface, so there is nothing to correct.
+    await fakeCamera(page)
+    await fakeOrientation(page)
+    await openCamera(page)
+    await turnSideways(page)
 
     await expect(page.locator('.camera-video')).not.toHaveAttribute(
       'style',
-      /rotate/,
+      /rotate\(9|rotate\(2/,
     )
     await page.click('.camera-video')
     const size = await page.evaluate(async () => {

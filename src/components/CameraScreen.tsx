@@ -22,49 +22,56 @@ export function CameraScreen(props: CameraScreenProps) {
   const [isLoading, setIsLoading] = createSignal(true);
   const [isCapturing, setIsCapturing] = createSignal(false);
   const [rotation, setRotation] = createSignal(0);
-  const [screenSize, setScreenSize] = createSignal({ width: 0, height: 0 });
+  const [box, setBox] = createSignal({ width: 0, height: 0 });
 
-  // The preview has to be spun back whenever the interface turns underneath it.
+  /** Re-reads the screen and works out how far the frames are out of step. */
+  const sync = () => {
+    if (!screenRef) return;
+    const view = { width: screenRef.clientWidth, height: screenRef.clientHeight };
+    setBox(view);
+    setRotation(
+      previewRotation(
+        { width: videoRef?.videoWidth ?? 0, height: videoRef?.videoHeight ?? 0 },
+        view,
+      ),
+    );
+  };
+
   onMount(() => {
-    const sync = () => {
-      setRotation(previewRotation());
-      setScreenSize({
-        width: screenRef?.clientWidth ?? 0,
-        height: screenRef?.clientHeight ?? 0,
-      });
-    };
-
-    sync();
+    // The box settles a beat after the rotation event, so watch the element
+    // itself rather than trying to guess when the viewport has caught up.
+    const observer = new ResizeObserver(sync);
+    if (screenRef) observer.observe(screenRef);
     screen.orientation?.addEventListener('change', sync);
     // Older iOS only fires the window-level event.
     window.addEventListener('orientationchange', sync);
-    // Safari lands the new viewport size a beat after the rotation event.
-    window.addEventListener('resize', sync);
+    sync();
 
     onCleanup(() => {
+      observer.disconnect();
       screen.orientation?.removeEventListener('change', sync);
       window.removeEventListener('orientationchange', sync);
-      window.removeEventListener('resize', sync);
     });
   });
 
-  /**
-   * A quarter turn swaps the preview's axes, so the box has to swap with it to
-   * keep covering the screen once the rotation is applied.
-   */
   const previewStyle = () => {
-    const turn = rotation();
-    if (turn === 0) return undefined;
+    const { width, height } = box();
+    if (!width || !height) return undefined;
 
-    // The mirror goes on last so it still flips what the viewer sees as
-    // left-to-right, whichever way the preview has been spun.
-    const style: Record<string, string> = { transform: `scaleX(-1) rotate(${turn}deg)` };
-    const { width, height } = screenSize();
-    if (turn % 180 !== 0 && width && height) {
-      style.width = `${height}px`;
-      style.height = `${width}px`;
-    }
-    return style;
+    const turn = rotation();
+    // A quarter turn swaps the axes, so swap the box with it: that is what
+    // lets object-fit cover the screen from a portrait frame instead of
+    // blowing it up to three times and cropping the sides away.
+    const quarterTurn = turn % 180 !== 0;
+    return {
+      // Pinned in pixels because Safari drops the percentage height for a
+      // beat mid-rotation, collapsing the preview to a letterboxed thumbnail.
+      width: `${quarterTurn ? height : width}px`,
+      height: `${quarterTurn ? width : height}px`,
+      // The mirror goes on last so it still flips what the viewer sees as
+      // left-to-right, whichever way the preview has been spun.
+      transform: `scaleX(-1) rotate(${turn}deg)`,
+    };
   };
 
   onMount(async () => {
@@ -149,7 +156,11 @@ export function CameraScreen(props: CameraScreenProps) {
         class="camera-video"
         style={previewStyle()}
         onClick={capturePhoto}
-        onLoadedData={() => setIsLoading(false)}
+        onLoadedMetadata={sync}
+        onLoadedData={() => {
+          setIsLoading(false);
+          sync();
+        }}
         autoplay
         playsinline
         muted
