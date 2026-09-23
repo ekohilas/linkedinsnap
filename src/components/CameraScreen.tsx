@@ -24,20 +24,38 @@ export function CameraScreen(props: CameraScreenProps) {
 
   // iOS Safari briefly draws the <video> as a small letterboxed box when a
   // rotation flips the camera's frames between portrait and landscape. Paint
-  // the frames onto a canvas on top instead: it takes each frame's size and
-  // covers the screen straight away.
+  // the frames onto a canvas on top instead, cropped here to the screen's
+  // shape like object-fit: cover. The canvas always has the same shape as its
+  // box, so it never relies on Safari refitting it when the frames change.
   const drawPreview = () => {
     previewFrame = requestAnimationFrame(drawPreview);
     const context = previewRef?.getContext('2d');
     if (!videoRef || !previewRef || !context) return;
 
     const { videoWidth, videoHeight } = videoRef;
-    if (!videoWidth || !videoHeight) return;
-    if (previewRef.width !== videoWidth || previewRef.height !== videoHeight) {
-      previewRef.width = videoWidth;
-      previewRef.height = videoHeight;
+    const { clientWidth, clientHeight } = previewRef;
+    if (!videoWidth || !videoHeight || !clientWidth || !clientHeight) return;
+
+    // The largest slice of the frame with the screen's shape, kept at the
+    // camera's own resolution.
+    const crop = Math.min(videoWidth / clientWidth, videoHeight / clientHeight);
+    const width = Math.round(clientWidth * crop);
+    const height = Math.round(clientHeight * crop);
+    if (previewRef.width !== width || previewRef.height !== height) {
+      previewRef.width = width;
+      previewRef.height = height;
     }
-    context.drawImage(videoRef, 0, 0, videoWidth, videoHeight);
+    context.drawImage(
+      videoRef,
+      (videoWidth - width) / 2,
+      (videoHeight - height) / 2,
+      width,
+      height,
+      0,
+      0,
+      width,
+      height,
+    );
   };
 
   onMount(async () => {
