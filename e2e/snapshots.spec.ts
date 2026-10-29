@@ -286,37 +286,6 @@ test('the gallery navigates back to the QR code and the camera', async ({ page }
   await expect(page.locator('.camera-preview')).toBeVisible()
 })
 
-test('photos saved by older versions move into IndexedDB', async ({ page }) => {
-  await page.goto('/#ekohilas')
-  await page.waitForSelector('.qr-code')
-
-  // A 1x1 JPEG, as older versions stored photos: data URLs in localStorage.
-  const dataUrl =
-    'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q=='
-  await page.evaluate((dataUrl) => {
-    const photos = Array.from({ length: 13 }, (_, index) => ({
-      id: `legacy-${index}`,
-      dataUrl,
-      takenAt: Date.UTC(2026, 0, 1) - index * 60_000,
-    }))
-    localStorage.setItem('linkedinsnap:photos', JSON.stringify(photos))
-  }, dataUrl)
-
-  await page.reload()
-  await page.waitForSelector('.qr-code')
-  await page.click('.nav-gallery')
-  await expect(page.locator('.gallery-photo')).toHaveCount(13)
-
-  const stored = await storedPhotos(page)
-  expect(stored.map(({ id }) => id)).toEqual(
-    Array.from({ length: 13 }, (_, index) => `legacy-${index}`),
-  )
-  expect(stored[0].type).toBe('image/jpeg')
-  expect(
-    await page.evaluate(() => localStorage.getItem('linkedinsnap:photos')),
-  ).toBeNull()
-})
-
 test('the gallery keeps more than twelve photos', async ({ page }) => {
   await fakeCamera(page)
   await page.goto('/#ekohilas')
