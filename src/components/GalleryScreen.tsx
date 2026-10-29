@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from 'solid-js';
+import { createResource, For, onCleanup, Show } from 'solid-js';
 import { loadPhotos } from '../utils/photos';
 import { NavBar, NavButton } from './NavBar';
 import { CameraIcon, QRIcon } from './icons';
@@ -16,12 +16,11 @@ function formatTaken(takenAt: number) {
   });
 }
 
-async function sharePhoto(dataUrl: string, takenAt: number) {
+async function sharePhoto(blob: Blob, takenAt: number) {
   const timestamp = new Date(takenAt).toISOString().replace(/[:.]/g, '-');
   const name = `linkedin-selfie-${timestamp}.jpg`;
 
   try {
-    const blob = await (await fetch(dataUrl)).blob();
     const file = new File([blob], name, { type: 'image/jpeg' });
 
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
@@ -48,7 +47,19 @@ async function sharePhoto(dataUrl: string, takenAt: number) {
 }
 
 export function GalleryScreen(props: GalleryScreenProps) {
-  const [photos] = createSignal(loadPhotos());
+  const urls: string[] = [];
+  const [roll] = createResource(async () => {
+    const { photos, limited } = await loadPhotos();
+    return {
+      limited,
+      photos: photos.map((photo) => {
+        const url = URL.createObjectURL(photo.blob);
+        urls.push(url);
+        return { ...photo, url };
+      }),
+    };
+  });
+  onCleanup(() => urls.forEach((url) => URL.revokeObjectURL(url)));
 
   return (
     <div class="gallery-screen">
@@ -56,8 +67,16 @@ export function GalleryScreen(props: GalleryScreenProps) {
         <h2>Selfies</h2>
       </header>
 
+      <Show when={roll.latest?.limited}>
+        <p class="gallery-warning" role="status">
+          Only one selfie can be stored here because this browser has limited
+          storage, so each new selfie replaces the last. Add LinkedInSnap to
+          your Home Screen to keep them all.
+        </p>
+      </Show>
+
       <Show
-        when={photos().length > 0}
+        when={roll.state !== 'ready' || roll().photos.length > 0}
         fallback={
           <div class="gallery-empty">
             <p>No selfies yet.</p>
@@ -66,14 +85,14 @@ export function GalleryScreen(props: GalleryScreenProps) {
         }
       >
         <div class="gallery-list">
-          <For each={photos()}>
+          <For each={roll.latest?.photos}>
             {(photo) => (
               <figure class="gallery-item">
                 <img
                   class="gallery-photo"
-                  src={photo.dataUrl}
+                  src={photo.url}
                   alt={`Selfie taken ${formatTaken(photo.takenAt)}`}
-                  onClick={() => sharePhoto(photo.dataUrl, photo.takenAt)}
+                  onClick={() => sharePhoto(photo.blob, photo.takenAt)}
                 />
                 <figcaption class="gallery-caption">
                   {formatTaken(photo.takenAt)}

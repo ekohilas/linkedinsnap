@@ -7,7 +7,7 @@ interface CameraScreenProps {
   onBack: () => void;
 }
 
-/** Keeps stored photos small enough for the localStorage budget. */
+/** Keeps stored photos small so the roll can hold plenty of them. */
 const MAX_STORED_WIDTH = 800;
 const STORED_QUALITY = 0.75;
 
@@ -86,14 +86,14 @@ export function CameraScreen(props: CameraScreenProps) {
     }
   });
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     // Nothing to draw until the first frame has landed.
     if (!videoRef || !canvasRef || isLoading() || isCapturing()) return;
     
     setIsCapturing(true);
 
     try {
-      // Draw video frame to canvas, scaled down so the roll fits in storage
+      // Draw video frame to canvas, scaled down to keep the stored roll small
       const context = canvasRef.getContext('2d');
       if (!context) throw new Error('Canvas context not available');
 
@@ -102,15 +102,24 @@ export function CameraScreen(props: CameraScreenProps) {
       canvasRef.height = Math.round(videoRef.videoHeight * scale);
       context.drawImage(videoRef, 0, 0, canvasRef.width, canvasRef.height);
 
-      // Keep the photo in localStorage so the gallery survives a reload
-      addPhoto(canvasRef.toDataURL('image/jpeg', STORED_QUALITY));
+      const canvas = canvasRef;
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', STORED_QUALITY),
+      );
+      if (!blob) throw new Error('Could not encode the photo');
+
+      // Keep the photo in IndexedDB so the gallery survives a reload
+      await addPhoto(blob);
     } catch (err) {
       console.error('Capture error:', err);
-    } finally {
+      // Say so rather than pretend: older photos are never dropped for room.
+      setError('Couldn\'t save this selfie. Your device may be out of storage.');
       setIsCapturing(false);
-      // Always show the gallery after a capture attempt
-      props.onCapture();
+      return;
     }
+
+    setIsCapturing(false);
+    props.onCapture();
   };
 
   return (

@@ -58,6 +58,64 @@ const fakeCamera = async (page: Page) => {
   })
 }
 
+
+interface StoredPhoto {
+  id: string
+  takenAt: number
+  type: string
+}
+
+// Reads the gallery's IndexedDB roll, newest first.
+const storedPhotos = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<StoredPhoto[]>((resolve, reject) => {
+        const open = indexedDB.open('linkedinsnap')
+        open.onerror = () => reject(open.error)
+        open.onsuccess = () => {
+          const req = open.result
+            .transaction('photos', 'readonly')
+            .objectStore('photos')
+            .getAll()
+          req.onerror = () => reject(req.error)
+          req.onsuccess = () => {
+            open.result.close()
+            resolve(
+              req.result
+                .map(({ id, takenAt, blob }) => ({ id, takenAt, type: blob.type }))
+                .sort((a, b) => b.takenAt - a.takenAt),
+            )
+          }
+        }
+      }),
+  )
+
+// Rewrites each stored photo's capture time, newest first.
+const setTakenAt = (page: Page, times: number[]) =>
+  page.evaluate(
+    (times) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('linkedinsnap')
+        open.onerror = () => reject(open.error)
+        open.onsuccess = () => {
+          const tx = open.result.transaction('photos', 'readwrite')
+          const store = tx.objectStore('photos')
+          const req = store.getAll()
+          req.onsuccess = () => {
+            req.result
+              .sort((a, b) => b.takenAt - a.takenAt)
+              .forEach((photo, index) => store.put({ ...photo, takenAt: times[index] }))
+          }
+          tx.oncomplete = () => {
+            open.result.close()
+            resolve()
+          }
+          tx.onerror = () => reject(tx.error)
+        }
+      }),
+    times,
+  )
+
 test('QR instructions view', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveScreenshot('qr-instructions.png')
@@ -175,11 +233,9 @@ test.describe('gallery with photos', () => {
     await page.click('.camera-preview')
 
     await expect(page.locator('.gallery-photo')).toHaveCount(1)
-    const stored = await page.evaluate(() =>
-      JSON.parse(localStorage.getItem('linkedinsnap:photos') ?? '[]'),
-    )
+    const stored = await storedPhotos(page)
     expect(stored).toHaveLength(1)
-    expect(stored[0].dataUrl.startsWith('data:image/jpeg;base64,')).toBe(true)
+    expect(stored[0].type).toBe('image/jpeg')
 
     // A second selfie stacks on top of the first.
     await page.click('.nav-camera')
@@ -188,15 +244,10 @@ test.describe('gallery with photos', () => {
     await expect(page.locator('.gallery-photo')).toHaveCount(2)
 
     // Freeze the capture times so the captions are stable across runs.
-    await page.evaluate(() => {
-      const photos = JSON.parse(
-        localStorage.getItem('linkedinsnap:photos') ?? '[]',
-      )
-      photos.forEach((photo, index) => {
-        photo.takenAt = Date.UTC(2026, 0, 2, 3, 4) - index * 60_000
-      })
-      localStorage.setItem('linkedinsnap:photos', JSON.stringify(photos))
-    })
+    await setTakenAt(page, [
+      Date.UTC(2026, 0, 2, 3, 4),
+      Date.UTC(2026, 0, 2, 3, 3),
+    ])
     await page.reload()
     await page.waitForSelector('.qr-code')
     await page.click('.nav-gallery')
@@ -233,4 +284,60 @@ test('the gallery navigates back to the QR code and the camera', async ({ page }
   await page.click('.nav-gallery')
   await page.click('.nav-camera')
   await expect(page.locator('.camera-preview')).toBeVisible()
+})
+
+test('the gallery keeps more than twelve photos', async ({ page }) => {
+  await fakeCamera(page)
+  await page.goto('/#ekohilas')
+  await page.waitForSelector('.qr-code')
+  await page.click('.qr-code-wrapper')
+
+  for (let shot = 1; shot <= 13; shot++) {
+    await page.waitForSelector('.loading-overlay', { state: 'hidden' })
+    await page.click('.camera-preview')
+    await expect(page.locator('.gallery-photo')).toHaveCount(shot)
+    if (shot < 13) await page.click('.nav-camera')
+  }
+
+  expect(await storedPhotos(page)).toHaveLength(13)
+})
+
+test('without IndexedDB the gallery keeps one photo and says why', async ({ page }) => {
+  // Stand in for a private window, where IndexedDB can't save photos.
+  await page.addInitScript(() => {
+    IDBFactory.prototype.open = () => {
+      throw new DOMException('Not available', 'InvalidStateError')
+    }
+  })
+  await fakeCamera(page)
+  await page.goto('/#ekohilas')
+  await page.waitForSelector('.qr-code')
+  await page.click('.nav-gallery')
+  await expect(page.locator('.gallery-empty')).toBeVisible()
+  await expect(page.locator('.gallery-warning')).toHaveCount(0)
+
+  await page.click('.nav-camera')
+  await page.waitForSelector('.loading-overlay', { state: 'hidden' })
+  await page.click('.camera-preview')
+  await expect(page.locator('.gallery-photo')).toHaveCount(1)
+  await expect(page.locator('.gallery-warning')).toContainText('Home Screen')
+  const first = await page.evaluate(() =>
+    localStorage.getItem('linkedinsnap:fallback-photo'),
+  )
+
+  // A second selfie replaces the first rather than failing.
+  await page.click('.nav-camera')
+  await page.waitForSelector('.loading-overlay', { state: 'hidden' })
+  await page.click('.camera-preview')
+  await expect(page.locator('.gallery-photo')).toHaveCount(1)
+  const second = await page.evaluate(() =>
+    localStorage.getItem('linkedinsnap:fallback-photo'),
+  )
+  expect(JSON.parse(second ?? '{}').id).not.toBe(JSON.parse(first ?? '{}').id)
+
+  await page.reload()
+  await page.waitForSelector('.qr-code')
+  await page.click('.nav-gallery')
+  await expect(page.locator('.gallery-photo')).toHaveCount(1)
+  await expect(page.locator('.gallery-warning')).toBeVisible()
 })

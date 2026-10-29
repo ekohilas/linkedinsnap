@@ -17,7 +17,7 @@ A Progressive Web App (PWA) that makes it easy to share your LinkedIn profile an
 ✅ No backend required  
 ✅ Hostable via GitHub Pages  
 ✅ Progressive Web App - installable on mobile devices  
-✅ Keeps a gallery of your selfies in the browser's local storage  
+✅ Keeps a gallery of your selfies in the browser's IndexedDB storage  
 ✅ Saves photos to camera roll via Web Share API  
 ✅ Built with SolidJS and TypeScript  
 ✅ Front-facing camera (selfie mode) by default  
@@ -32,7 +32,7 @@ A Progressive Web App (PWA) that makes it easy to share your LinkedIn profile an
 - **PWA**: vite-plugin-pwa
 - **Camera**: getUserMedia API
 - **Photo Save**: Web Share API (with download fallback)
-- **Photo Storage**: localStorage
+- **Photo Storage**: IndexedDB, falling back to a single photo in localStorage where IndexedDB can't save (e.g. private browsing)
 
 ## Development
 
