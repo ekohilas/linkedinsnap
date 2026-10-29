@@ -301,3 +301,43 @@ test('the gallery keeps more than twelve photos', async ({ page }) => {
 
   expect(await storedPhotos(page)).toHaveLength(13)
 })
+
+test('without IndexedDB the gallery keeps one photo and says why', async ({ page }) => {
+  // Stand in for a private window, where IndexedDB can't save photos.
+  await page.addInitScript(() => {
+    IDBFactory.prototype.open = () => {
+      throw new DOMException('Not available', 'InvalidStateError')
+    }
+  })
+  await fakeCamera(page)
+  await page.goto('/#ekohilas')
+  await page.waitForSelector('.qr-code')
+  await page.click('.nav-gallery')
+  await expect(page.locator('.gallery-empty')).toBeVisible()
+  await expect(page.locator('.gallery-warning')).toHaveCount(0)
+
+  await page.click('.nav-camera')
+  await page.waitForSelector('.loading-overlay', { state: 'hidden' })
+  await page.click('.camera-preview')
+  await expect(page.locator('.gallery-photo')).toHaveCount(1)
+  await expect(page.locator('.gallery-warning')).toContainText('Home Screen')
+  const first = await page.evaluate(() =>
+    localStorage.getItem('linkedinsnap:fallback-photo'),
+  )
+
+  // A second selfie replaces the first rather than failing.
+  await page.click('.nav-camera')
+  await page.waitForSelector('.loading-overlay', { state: 'hidden' })
+  await page.click('.camera-preview')
+  await expect(page.locator('.gallery-photo')).toHaveCount(1)
+  const second = await page.evaluate(() =>
+    localStorage.getItem('linkedinsnap:fallback-photo'),
+  )
+  expect(JSON.parse(second ?? '{}').id).not.toBe(JSON.parse(first ?? '{}').id)
+
+  await page.reload()
+  await page.waitForSelector('.qr-code')
+  await page.click('.nav-gallery')
+  await expect(page.locator('.gallery-photo')).toHaveCount(1)
+  await expect(page.locator('.gallery-warning')).toBeVisible()
+})

@@ -32,7 +32,7 @@ A Progressive Web App (PWA) that makes it easy to share your LinkedIn profile an
 - **PWA**: vite-plugin-pwa
 - **Camera**: getUserMedia API
 - **Photo Save**: Web Share API (with download fallback)
-- **Photo Storage**: IndexedDB
+- **Photo Storage**: IndexedDB, falling back to a single photo in localStorage where IndexedDB can't save (e.g. private browsing)
 
 ## Development
 

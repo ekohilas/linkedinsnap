@@ -48,13 +48,17 @@ async function sharePhoto(blob: Blob, takenAt: number) {
 
 export function GalleryScreen(props: GalleryScreenProps) {
   const urls: string[] = [];
-  const [photos] = createResource(async () =>
-    (await loadPhotos()).map((photo) => {
-      const url = URL.createObjectURL(photo.blob);
-      urls.push(url);
-      return { ...photo, url };
-    }),
-  );
+  const [roll] = createResource(async () => {
+    const { photos, limited } = await loadPhotos();
+    return {
+      limited,
+      photos: photos.map((photo) => {
+        const url = URL.createObjectURL(photo.blob);
+        urls.push(url);
+        return { ...photo, url };
+      }),
+    };
+  });
   onCleanup(() => urls.forEach((url) => URL.revokeObjectURL(url)));
 
   return (
@@ -63,8 +67,16 @@ export function GalleryScreen(props: GalleryScreenProps) {
         <h2>Selfies</h2>
       </header>
 
+      <Show when={roll.latest?.limited}>
+        <p class="gallery-warning" role="status">
+          Only one selfie can be stored here because this browser has limited
+          storage, so each new selfie replaces the last. Add LinkedInSnap to
+          your Home Screen to keep them all.
+        </p>
+      </Show>
+
       <Show
-        when={photos.state !== 'ready' || photos().length > 0}
+        when={roll.state !== 'ready' || roll().photos.length > 0}
         fallback={
           <div class="gallery-empty">
             <p>No selfies yet.</p>
@@ -73,7 +85,7 @@ export function GalleryScreen(props: GalleryScreenProps) {
         }
       >
         <div class="gallery-list">
-          <For each={photos.latest}>
+          <For each={roll.latest?.photos}>
             {(photo) => (
               <figure class="gallery-item">
                 <img
